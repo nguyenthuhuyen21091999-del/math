@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pháo Thủ Toán Học - Phép Cộng Số Nguyên</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #0b0c10;
+            color: #66fcf1;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        #game-header {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px 30px;
+            background-color: #1f2833;
+            font-size: 24px;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            z-index: 10;
+        }
+        #game-area {
+            flex-grow: 1;
+            position: relative;
+            background: radial-gradient(circle, #1a1a2e 0%, #000000 100%);
+            overflow: hidden;
+        }
+        .enemy {
+            position: absolute;
+            background-color: #45a29e;
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 22px;
+            font-weight: bold;
+            text-align: center;
+            box-shadow: 0 0 15px #45a29e;
+            transform: translateX(-50%);
+            transition: opacity 0.2s;
+        }
+        .enemy.special {
+            background-color: #f1c40f;
+            color: #000;
+            box-shadow: 0 0 25px #f1c40f;
+            border: 2px solid #fff;
+        }
+        .explosion {
+            position: absolute;
+            font-size: 45px;
+            transform: translateX(-50%);
+            pointer-events: none;
+            animation: fadeOut 0.5s forwards;
+        }
+        @keyframes fadeOut {
+            0% { opacity: 1; transform: translateX(-50%) scale(1); }
+            100% { opacity: 0; transform: translateX(-50%) scale(2.2); }
+        }
+        .floating-text {
+            position: absolute;
+            font-size: 26px;
+            font-weight: bold;
+            color: #ffea00;
+            pointer-events: none;
+            text-shadow: 0 0 10px #ff9400;
+            animation: floatUp 0.8s ease-out forwards;
+            z-index: 20;
+        }
+        @keyframes floatUp {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-40px) scale(1.4); }
+        }
+        .shake-screen {
+            animation: screenShake 0.3s;
+        }
+        @keyframes screenShake {
+            0%, 100% { transform: translate(0, 0); }
+            25% { transform: translate(-8px, 5px); }
+            50% { transform: translate(8px, -5px); }
+            75% { transform: translate(-5px, -5px); }
+        }
+        #player-area {
+            height: 80px;
+            background-color: #1f2833;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-top: 3px solid #45a29e;
+        }
+        #answer-input {
+            width: 220px;
+            font-size: 28px;
+            padding: 5px 15px;
+            text-align: center;
+            border: 2px solid #66fcf1;
+            border-radius: 8px;
+            background-color: #0b0c10;
+            color: #66fcf1;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        #answer-input:focus {
+            box-shadow: 0 0 15px #66fcf1;
+        }
+        #answer-input.wrong-input {
+            border-color: #ff5252 !important;
+            box-shadow: 0 0 15px #ff5252 !important;
+            animation: inputShake 0.2s;
+        }
+        @keyframes inputShake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-8px); }
+            75% { transform: translateX(8px); }
+        }
+        #overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(0, 0, 0, 0.88);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        .player-name-box {
+            margin: 15px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+        #name-input {
+            padding: 8px 15px;
+            font-size: 20px;
+            border-radius: 6px;
+            border: 2px solid #45a29e;
+            background: #0b0c10;
+            color: #fff;
+            text-align: center;
+            outline: none;
+        }
+        .btn {
+            padding: 15px 40px;
+            font-size: 24px;
+            background-color: #45a29e;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 15px;
+            font-weight: bold;
+            transition: transform 0.1s, background-color 0.2s;
+        }
+        .btn:hover {
+            background-color: #66fcf1;
+            color: #0b0c10;
+            transform: scale(1.05);
+        }
+        .title { font-size: 44px; margin-bottom: 10px; color: #66fcf1; text-align: center; }
+        .subtitle { font-size: 18px; color: #c5c6c7; margin-bottom: 15px; text-align: center; max-width: 600px; line-height: 1.5; }
+        #saving-status { font-size: 16px; color: #ffea00; margin-top: 10px; min-height: 20px; }
+    </style>
+</head>
+<body>
+
+    <div id="game-header">
+        <div>Điểm: <span id="score-display">0</span> / 150</div>
+        <div>Mạng: <span id="lives-display">3</span> 💖</div>
+    </div>
+
+    <div id="game-area">
+        <div id="overlay">
+            <div class="title" id="overlay-title">PHÁO THỦ TOÁN HỌC</div>
+            <div class="subtitle" id="overlay-desc">Bảo vệ căn cứ khỏi các thiên thạch phép tính số nguyên!<br><strong style="color: #ff5252;">Gõ sai đáp án hoặc để thiên thạch chạm đất sẽ mất 1 mạng!</strong></div>
+            
+            <div class="player-name-box">
+                <label for="name-input" style="color: #c5c6c7;">Tên người chơi:</label>
+                <input type="text" id="name-input" placeholder="Nhập tên của bạn..." value="Học sinh">
+            </div>
+
+            <button class="btn" id="start-btn">Bắt đầu chiến đấu</button>
+            <div id="saving-status"></div>
+        </div>
+    </div>
+
+    <div id="player-area">
+        <input type="number" id="answer-input" placeholder="Đáp án..." disabled autocomplete="off">
+    </div>
+
+    <script>
+        // DÁN URL GOOGLE APPS SCRIPT CỦA BẠN VÀO ĐÂY
+        const GOOGLE_SCRIPT_URL = "URL_CỦA_BẠN_Ở_ĐÂY";
+
+        const gameArea = document.getElementById('game-area');
+        const scoreDisplay = document.getElementById('score-display');
+        const livesDisplay = document.getElementById('lives-display');
+        const answerInput = document.getElementById('answer-input');
+        const overlay = document.getElementById('overlay');
+        const overlayTitle = document.getElementById('overlay-title');
+        const overlayDesc = document.getElementById('overlay-desc');
+        const startBtn = document.getElementById('start-btn');
+        const nameInput = document.getElementById('name-input');
+        const savingStatus = document.getElementById('saving-status');
+
+        let score = 0;
+        let lives = 3;
+        let combo = 0;
+        let enemies = [];
+        let gameInterval = null;
+        let spawnInterval = null;
+        let isPlaying = false;
+        const maxScore = 150;
+
+        let audioCtx = null;
+        function playSound(type) {
+            try {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                const now = audioCtx.currentTime;
+
+                if (type === 'hit') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(350, now);
+                    osc.frequency.exponentialRampToValueAtTime(100, now + 0.12);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+                    osc.start(now); osc.stop(now + 0.12);
+                } else if (type === 'combo') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(400 + (combo * 50), now);
+                    osc.frequency.exponentialRampToValueAtTime(800 + (combo * 50), now + 0.18);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.18);
+                    osc.start(now); osc.stop(now + 0.18);
+                } else if (type === 'damage') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(160, now);
+                    osc.frequency.linearRampToValueAtTime(40, now + 0.25);
+                    gain.gain.setValueAtTime(0.4, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                    osc.start(now); osc.stop(now + 0.25);
+                }
+            } catch (e) {
+                console.log("Audio Error:", e);
+            }
+        }
+
+        function getDifficulty() {
+            if (score < 30) return { min: -9, max: 9, speed: 0.9, spawnRate: 2800 };
+            if (score < 70) return { min: -25, max: 25, speed: 1.3, spawnRate: 2300 };
+            if (score < 110) return { min: -50, max: 50, speed: 1.7, spawnRate: 1800 };
+            if (score < 140) return { min: -99, max: 99, speed: 2.1, spawnRate: 1400 };
+            return { min: -99, max: 99, speed: 2.6, spawnRate: 1000 };
+        }
+
+        function getRandomInt(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        function generateProblem() {
+            const diff = getDifficulty();
+            let a = getRandomInt(diff.min, diff.max);
+            let b = getRandomInt(diff.min, diff.max);
+            if (a === 0 && b === 0) a = 1;
+
+            let bStr = b < 0 ? `(${b})` : b;
+            const isSpecial = Math.random() < 0.15;
+
+            return {
+                text: `${a} + ${bStr}`,
+                answer: a + b,
+                speed: diff.speed * (isSpecial ? 1.2 : 1.0),
+                isSpecial: isSpecial
+            };
+        }
+
+        function spawnEnemy() {
+            if (!isPlaying || score >= maxScore) return;
+
+            const problem = generateProblem();
+            const enemyEl = document.createElement('div');
+            enemyEl.classList.add('enemy');
+            if (problem.isSpecial) enemyEl.classList.add('special');
+            enemyEl.textContent = problem.text;
+            
+            const leftPos = getRandomInt(12, 88); 
+            enemyEl.style.left = `${leftPos}%`;
+            enemyEl.style.top = `-50px`;
+
+            gameArea.appendChild(enemyEl);
+
+            enemies.push({
+                element: enemyEl,
+                answer: problem.answer,
+                y: -50,
+                speed: problem.speed,
+                isSpecial: problem.isSpecial
+            });
+
+            clearInterval(spawnInterval);
+            spawnInterval = setInterval(spawnEnemy, getDifficulty().spawnRate);
+        }
+
+        function updateGame() {
+            if (!isPlaying) return;
+            const maxY = gameArea.clientHeight;
+
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                let enemy = enemies[i];
+                enemy.y += enemy.speed;
+                enemy.element.style.top = `${enemy.y}px`;
+
+                if (enemy.y > maxY - 40) {
+                    gameArea.removeChild(enemy.element);
+                    enemies.splice(i, 1);
+                    loseLife();
+                }
+            }
+        }
+
+        function loseLife() {
+            lives--;
+            combo = 0;
+            livesDisplay.textContent = lives;
+            playSound('damage');
+
+            gameArea.classList.add('shake-screen');
+            gameArea.style.backgroundColor = "rgba(255, 0, 0, 0.3)";
+            setTimeout(() => {
+                gameArea.style.backgroundColor = "";
+                gameArea.classList.remove('shake-screen');
+            }, 300);
+
+            if (lives <= 0) {
+                endGame(false);
+            }
+        }
+
+        function showFloatingText(text, left, top) {
+            const el = document.createElement('div');
+            el.classList.add('floating-text');
+            el.textContent = text;
+            el.style.left = left;
+            el.style.top = `${top}px`;
+            gameArea.appendChild(el);
+            setTimeout(() => {
+                if (gameArea.contains(el)) gameArea.removeChild(el);
+            }, 800);
+        }
+
+        answerInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && isPlaying) {
+                const playerAnswer = parseInt(answerInput.value);
+                answerInput.value = '';
+
+                if (isNaN(playerAnswer)) return;
+
+                let targetIndex = -1;
+                let maxY = -100;
+
+                for (let i = 0; i < enemies.length; i++) {
+                    if (enemies[i].answer === playerAnswer && enemies[i].y > maxY) {
+                        targetIndex = i;
+                        maxY = enemies[i].y;
+                    }
+                }
+
+                if (targetIndex !== -1) {
+                    combo++;
+                    const enemy = enemies[targetIndex];
+                    let pointsGained = enemy.isSpecial ? 2 : 1;
+                    
+                    if (combo >= 3) {
+                        showFloatingText(`🔥 COMBO x${combo}! +${pointsGained}`, enemy.element.style.left, enemy.y);
+                        playSound('combo');
+                    } else {
+                        showFloatingText(`+${pointsGained}`, enemy.element.style.left, enemy.y);
+                        playSound('hit');
+                    }
+
+                    destroyEnemy(targetIndex);
+                    score += pointsGained;
+                    scoreDisplay.textContent = score;
+
+                    if (score >= maxScore) {
+                        endGame(true);
+                    }
+                } else {
+                    loseLife();
+                    answerInput.classList.add('wrong-input');
+                    setTimeout(() => answerInput.classList.remove('wrong-input'), 200);
+                }
+            }
+        });
+
+        function destroyEnemy(index) {
+            const enemy = enemies[index];
+            const explosion = document.createElement('div');
+            explosion.classList.add('explosion');
+            explosion.textContent = enemy.isSpecial ? '⭐💥' : '💥';
+            explosion.style.left = enemy.element.style.left;
+            explosion.style.top = `${enemy.y}px`;
+            gameArea.appendChild(explosion);
+            
+            gameArea.removeChild(enemy.element);
+            enemies.splice(index, 1);
+
+            setTimeout(() => {
+                if(gameArea.contains(explosion)) {
+                    gameArea.removeChild(explosion);
+                }
+            }, 500);
+        }
+
+        function sendResultToGoogleSheet(playerName, finalScore, isWin) {
+            if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL.includes("URL_CỦA_BẠN_Ở_ĐÂY")) {
+                savingStatus.textContent = "x";
+                return;
+            }
+
+            savingStatus.textContent = "⏳ Đang lưu kết quả lên Google Sheet...";
+
+            const payload = {
+                playerName: playerName,
+                score: finalScore,
+                result: isWin ? "Chiến thắng" : "Thất bại"
+            };
+
+            fetch(GOOGLE_SCRIPT_URL, {
+                method: "POST",
+                mode: "no-cors",
+                headers: { 
+                    "Content-Type": "text/plain;charset=utf-8" 
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(() => {
+                savingStatus.textContent = "✅ Đã lưu kết quả thành công!";
+            })
+            .catch(error => {
+                console.error("Lỗi gửi dữ liệu:", error);
+                savingStatus.textContent = "x";
+            });
+        }
+
+        function endGame(isWin) {
+            isPlaying = false;
+            clearInterval(gameInterval);
+            clearInterval(spawnInterval);
+            answerInput.disabled = true;
+
+            overlay.style.display = 'flex';
+            startBtn.textContent = 'Thử lại';
+
+            const playerName = nameInput.value.trim() || "Người chơi";
+
+            if (isWin) {
+                overlayTitle.textContent = "CHIẾN THẮNG RỰC RỠ!";
+                overlayTitle.style.color = "#4CAF50";
+                overlayDesc.textContent = `Xuất sắc! ${playerName} đã đạt điểm tối đa và bảo vệ căn cứ an toàn!`;
+            } else {
+                overlayTitle.textContent = "THẤT BẠI!";
+                overlayTitle.style.color = "#FF5252";
+                overlayDesc.textContent = `${playerName} đạt được ${score}/150 điểm. Hãy cố gắng hơn nhé!`;
+            }
+
+            sendResultToGoogleSheet(playerName, score, isWin);
+        }
+
+        startBtn.addEventListener('click', () => {
+            playSound('hit');
+            score = 0;
+            lives = 3;
+            combo = 0;
+            scoreDisplay.textContent = score;
+            livesDisplay.textContent = lives;
+            savingStatus.textContent = "";
+            overlay.style.display = 'none';
+            overlayTitle.style.color = "#66fcf1";
+            
+            enemies.forEach(e => {
+                if (gameArea.contains(e.element)) gameArea.removeChild(e.element);
+            });
+            enemies = [];
+
+            isPlaying = true;
+            answerInput.disabled = false;
+            answerInput.focus();
+
+            if (gameInterval) clearInterval(gameInterval);
+            if (spawnInterval) clearInterval(spawnInterval);
+
+            gameInterval = setInterval(updateGame, 20);
+            spawnInterval = setInterval(spawnEnemy, getDifficulty().spawnRate);
+            spawnEnemy();
+        });
+
+        answerInput.addEventListener('blur', () => {
+            if (isPlaying) {
+                setTimeout(() => answerInput.focus(), 10);
+            }
+        });
+    </script>
+</body>
+</html>
